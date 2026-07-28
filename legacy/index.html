@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>面试追踪 · Interview Tracker</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>面试追踪</h1>
+      <p class="brand-sub">数据仅保存在这台设备的浏览器中</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" id="btn-import" title="从 JSON 文件导入">导入</button>
+    <button class="btn btn-ghost" id="btn-export" title="导出为 JSON 文件">导出</button>
+    <button class="btn btn-ghost btn-icon" id="btn-theme" title="切换深色 / 浅色" aria-label="切换主题"><span id="theme-glyph">◐</span></button>
+    <button class="btn btn-primary" id="btn-new">＋ 新建投递 <kbd>N</kbd></button>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- ── 重点：待办 ───────────────────────────── -->
+  <section class="focus" id="focus" aria-label="需要关注"></section>
+
+  <!-- ── KPI ────────────────────────────────── -->
+  <section class="kpi-row" id="kpi" aria-label="关键指标"></section>
+
+  <!-- ── 过滤条（作用于下方全部内容） ──────────── -->
+  <section class="filters" aria-label="筛选">
+    <div class="field-search">
+      <span class="search-glyph" aria-hidden="true">⌕</span>
+      <input type="search" id="f-q" placeholder="搜索公司 / 岗位 / 城市 / 标签…" aria-label="搜索">
+      <kbd class="search-kbd">/</kbd>
+    </div>
+    <label class="field"><span>时间</span>
+      <select id="f-range">
+        <option value="all">全部时间</option>
+        <option value="7">近 7 天</option>
+        <option value="30">近 30 天</option>
+        <option value="90">近 90 天</option>
+      </select>
+    </label>
+    <label class="field"><span>状态</span><select id="f-status"></select></label>
+    <label class="field"><span>城市</span><select id="f-city"></select></label>
+    <label class="field"><span>排序</span>
+      <select id="f-sort">
+        <option value="updated">最近更新</option>
+        <option value="applied">投递时间</option>
+        <option value="next">最近面试</option>
+        <option value="company">公司名</option>
+      </select>
+    </label>
+    <span class="filters-spacer"></span>
+    <div class="seg" role="tablist" aria-label="视图">
+      <button class="seg-btn" data-view="board" role="tab">看板</button>
+      <button class="seg-btn" data-view="list" role="tab">列表</button>
+      <button class="seg-btn" data-view="stats" role="tab">统计</button>
+    </div>
+  </section>
+
+  <p class="result-count" id="result-count"></p>
+
+  <!-- ── 视图 ───────────────────────────────── -->
+  <section id="view-board" class="view"></section>
+  <section id="view-list"  class="view" hidden></section>
+  <section id="view-stats" class="view" hidden></section>
+
+</main>
+
+<!-- ── 详情 / 编辑抽屉 ─────────────────────────── -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="投递详情"></aside>
+
+<!-- ── 图表 tooltip ──────────────────────────── -->
+<div class="tip" id="tip" hidden role="status"></div>
+
+<!-- ── toast ─────────────────────────────────── -->
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<input type="file" id="file-input" accept="application/json,.json" hidden>
+
+<script src="app.js"></script>
+</body>
+</html>
