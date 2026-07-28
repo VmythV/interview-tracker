@@ -654,26 +654,49 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
 .cal-event-rd { font-size: 10.5px; color: var(--text-2); }
 .cal-event-co, .cal-event-rd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 月视图 */
+/* ── 月视图：原生纵向滚动容器，连续铺一年多的周 ────────────
+   滚动交给浏览器，惯性和平滑都是原生的；scroll-snap 用 proximity
+   而不是 mandatory —— 只在停下来时轻轻吸附到周边界，不跟手指较劲。 */
+.cal-month-scroll {
+  /* 必须 relative：行的 offsetTop 要相对这个容器量，否则滚动定位会整体偏掉 */
+  position: relative;
+  max-height: min(64vh, 680px);
+  overflow: auto;
+  scroll-snap-type: y proximity;
+  scroll-behavior: auto; /* 平滑与否由 scrollTo 决定，避免键盘滚动也被平滑化 */
+  --cal-head-h: 32px;
+}
 .cal-month-head {
+  position: sticky; top: 0; z-index: 3;
+  height: var(--cal-head-h);
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: var(--surface-1);
   border-bottom: 1px solid var(--axis);
 }
 .cal-month-head > div {
-  padding: 7px 8px; font-size: 11px; color: var(--text-2);
+  display: flex; align-items: center;
+  padding: 0 8px; font-size: 11px; color: var(--text-2);
   border-left: 1px solid var(--grid);
 }
 .cal-month-head > div:first-child { border-left: 0; }
-.cal-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+.cal-week-row {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  scroll-snap-align: start;
+  /* 吸附时给粘性表头让出位置，否则整行被表头压住 */
+  scroll-margin-top: var(--cal-head-h);
+}
 .cal-cell {
   min-height: 104px; padding: 5px 5px 7px;
   border-left: 1px solid var(--grid); border-top: 1px solid var(--grid);
   display: flex; flex-direction: column; gap: 4px;
 }
-.cal-cell:nth-child(7n + 1) { border-left: 0; }
+.cal-cell:first-child { border-left: 0; }
 .cal-cell.is-outside { background: var(--surface-2); }
 .cal-cell.is-outside .cal-daynum { color: var(--muted); }
 .cal-cell.is-today { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+/* 每月 1 号加一道分隔线：连续滚动时这是最重要的月份分界线索 */
+.cal-cell.is-month-start { border-top-color: var(--axis); }
 .cal-daynum {
   align-self: flex-start; padding: 1px 7px; border: 0; border-radius: 999px;
   background: transparent; cursor: pointer;
@@ -727,9 +750,10 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
 /* 窄屏：7 列硬塞进 390px 每列只剩 40 多像素，事件被截成「15:」「星…」。
    改成日历内部横向滚动 + 每列保底宽度，横向划着看；页面本身不溢出。 */
 @media (max-width: 700px) {
-  .cal-week, .cal-month { overflow-x: auto; overscroll-behavior-x: contain; }
+  .cal-week { overflow-x: auto; overscroll-behavior-x: contain; }
   .cal-week-head, .cal-allday, .cal-week-body { min-width: 660px; }
-  .cal-month-head, .cal-month-grid { min-width: 620px; }
+  /* 月视图的滚动容器同时负责横向滚动，避免嵌套两层滚动区 */
+  .cal-month-head, .cal-week-row { min-width: 620px; }
   .cal-chip .r { display: inline; }
   .cal-bar { gap: 8px; }
   .cal-title { font-size: 12.5px; }

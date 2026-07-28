@@ -1,17 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import {
-  calendarEvents,
-  focusMonthOf,
-  monthWindowStart,
-  rangeLabel,
-  type CalendarEvent,
-} from '../../lib/calendar';
-import { addDays, localISO } from '../../lib/date';
+import { calendarEvents, rangeLabel, type CalendarEvent } from '../../lib/calendar';
+import { localISO, mondayOfWeek } from '../../lib/date';
 import { useStore } from '../../store/StoreContext';
 import { useToast } from '../../store/ToastContext';
 import type { Application } from '../../types';
-import { MonthGrid } from './MonthGrid';
+import { MonthGrid, type ScrollTarget } from './MonthGrid';
 import { QuickAddRound } from './QuickAddRound';
 import { WeekGrid } from './WeekGrid';
 
@@ -32,8 +26,22 @@ export function CalendarView({
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('week');
   const [anchor, setAnchor] = useState(() => new Date());
-  // 月视图单独记窗口起点（某个周一）：滚轮按周挪动它，与周视图的 anchor 互不干扰
-  const [monthStart, setMonthStart] = useState(() => monthWindowStart(new Date()));
+  // 月视图是原生滚动容器：日历自己上报「现在看的是哪个月」，
+  // 我们只在点按钮时告诉它滚到哪一周。
+  const [monthFocus, setMonthFocus] = useState(() => new Date());
+  const [scrollTarget, setScrollTarget] = useState<ScrollTarget>(() => ({
+    week: mondayOfWeek(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    smooth: false,
+    nonce: 0,
+  }));
+
+  const scrollToMonth = useCallback((month: Date, smooth = true) => {
+    setScrollTarget((t) => ({
+      week: mondayOfWeek(new Date(month.getFullYear(), month.getMonth(), 1)),
+      smooth,
+      nonce: t.nonce + 1,
+    }));
+  }, []);
   /** 非 null 时弹出「新增一场面试」，值是预填的时间 */
   const [quickAt, setQuickAt] = useState<string | null>(null);
 
@@ -54,23 +62,20 @@ export function CalendarView({
     [rows],
   );
 
-  /** ‹ › 按钮：粗粒度翻页，周视图一次一周、月视图一次一月 */
+  /** ‹ › 按钮：周视图一次一周，月视图平滑滚到上/下一个月 */
   const stepPage = useCallback(
     (n: number) => {
       if (mode === 'week') setAnchor((d) => shiftWeek(d, n));
-      else setMonthStart((s) => monthWindowStart(shiftMonth(focusMonthOf(s), n)));
+      else scrollToMonth(shiftMonth(monthFocus, n));
     },
-    [mode],
+    [mode, monthFocus, scrollToMonth],
   );
-
-  /** 滚轮：细粒度，一步一周 */
-  const stepWeek = useCallback((n: number) => setMonthStart((s) => addDays(s, n * 7)), []);
 
   const goToday = useCallback(() => {
     const now = new Date();
     setAnchor(now);
-    setMonthStart(monthWindowStart(now));
-  }, []);
+    scrollToMonth(now);
+  }, [scrollToMonth]);
 
   return (
     <div className="cal">
@@ -88,7 +93,7 @@ export function CalendarView({
         </div>
 
         <h3 className="cal-title">
-          {mode === 'week' ? rangeLabel(anchor, 'week') : rangeLabel(focusMonthOf(monthStart), 'month')}
+          {mode === 'week' ? rangeLabel(anchor, 'week') : rangeLabel(monthFocus, 'month')}
         </h3>
 
         <span className="filters-spacer" />
@@ -121,11 +126,12 @@ export function CalendarView({
         <WeekGrid anchor={anchor} events={events} onOpen={onOpen} onPickSlot={setQuickAt} />
       ) : (
         <MonthGrid
-          windowStart={monthStart}
           events={events}
           onOpen={onOpen}
           onPickSlot={setQuickAt}
-          onStep={stepWeek}
+          scrollTarget={scrollTarget}
+          focusMonth={monthFocus}
+          onFocusMonth={setMonthFocus}
           onPickDay={(d) => {
             setAnchor(d);
             setMode('week');
@@ -157,7 +163,7 @@ export function CalendarView({
           <span className="legend-key" />✕ 未通过
         </span>
         <span className="cal-legend-note">
-          {mode === 'month' ? '滚轮上下滚动，一次一周 · ' : ''}点空白格子可直接新增面试 · 日历只画已定时间的轮次
+          {mode === 'month' ? '上下滚动可连续查看前后日期 · ' : ''}点空白格子可直接新增面试 · 日历只画已定时间的轮次
         </span>
       </div>
 
