@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { calendarEvents, rangeLabel, type CalendarEvent } from '../../lib/calendar';
-import { localISO } from '../../lib/date';
+import {
+  calendarEvents,
+  focusMonthOf,
+  monthWindowStart,
+  rangeLabel,
+  type CalendarEvent,
+} from '../../lib/calendar';
+import { addDays, localISO } from '../../lib/date';
 import { useStore } from '../../store/StoreContext';
 import { useToast } from '../../store/ToastContext';
 import type { Application } from '../../types';
@@ -26,6 +32,8 @@ export function CalendarView({
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('week');
   const [anchor, setAnchor] = useState(() => new Date());
+  // 月视图单独记窗口起点（某个周一）：滚轮按周挪动它，与周视图的 anchor 互不干扰
+  const [monthStart, setMonthStart] = useState(() => monthWindowStart(new Date()));
   /** 非 null 时弹出「新增一场面试」，值是预填的时间 */
   const [quickAt, setQuickAt] = useState<string | null>(null);
 
@@ -46,27 +54,42 @@ export function CalendarView({
     [rows],
   );
 
-  const step = useCallback(
-    (n: number) => setAnchor((d) => (mode === 'week' ? shiftWeek(d, n) : shiftMonth(d, n))),
+  /** ‹ › 按钮：粗粒度翻页，周视图一次一周、月视图一次一月 */
+  const stepPage = useCallback(
+    (n: number) => {
+      if (mode === 'week') setAnchor((d) => shiftWeek(d, n));
+      else setMonthStart((s) => monthWindowStart(shiftMonth(focusMonthOf(s), n)));
+    },
     [mode],
   );
+
+  /** 滚轮：细粒度，一步一周 */
+  const stepWeek = useCallback((n: number) => setMonthStart((s) => addDays(s, n * 7)), []);
+
+  const goToday = useCallback(() => {
+    const now = new Date();
+    setAnchor(now);
+    setMonthStart(monthWindowStart(now));
+  }, []);
 
   return (
     <div className="cal">
       <div className="cal-bar">
         <div className="cal-nav">
-          <button type="button" className="btn btn-sm btn-icon" aria-label="上一个" onClick={() => step(-1)}>
+          <button type="button" className="btn btn-sm btn-icon" aria-label="上一个" onClick={() => stepPage(-1)}>
             ‹
           </button>
-          <button type="button" className="btn btn-sm" onClick={() => setAnchor(new Date())}>
+          <button type="button" className="btn btn-sm" onClick={goToday}>
             今天
           </button>
-          <button type="button" className="btn btn-sm btn-icon" aria-label="下一个" onClick={() => step(1)}>
+          <button type="button" className="btn btn-sm btn-icon" aria-label="下一个" onClick={() => stepPage(1)}>
             ›
           </button>
         </div>
 
-        <h3 className="cal-title">{rangeLabel(anchor, mode)}</h3>
+        <h3 className="cal-title">
+          {mode === 'week' ? rangeLabel(anchor, 'week') : rangeLabel(focusMonthOf(monthStart), 'month')}
+        </h3>
 
         <span className="filters-spacer" />
 
@@ -98,11 +121,11 @@ export function CalendarView({
         <WeekGrid anchor={anchor} events={events} onOpen={onOpen} onPickSlot={setQuickAt} />
       ) : (
         <MonthGrid
-          anchor={anchor}
+          windowStart={monthStart}
           events={events}
           onOpen={onOpen}
           onPickSlot={setQuickAt}
-          onStep={step}
+          onStep={stepWeek}
           onPickDay={(d) => {
             setAnchor(d);
             setMode('week');
@@ -134,7 +157,7 @@ export function CalendarView({
           <span className="legend-key" />✕ 未通过
         </span>
         <span className="cal-legend-note">
-          {mode === 'month' ? '滚轮上下翻月 · ' : ''}点空白格子可直接新增面试 · 日历只画已定时间的轮次
+          {mode === 'month' ? '滚轮上下滚动，一次一周 · ' : ''}点空白格子可直接新增面试 · 日历只画已定时间的轮次
         </span>
       </div>
 

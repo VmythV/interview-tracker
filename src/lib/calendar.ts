@@ -70,15 +70,37 @@ export function weekDays(anchor: Date): Date[] {
   );
 }
 
-/** 月视图网格：从该月第一周的周一开始，只铺到真正需要的周数（不硬撑 6 行） */
-export function monthDays(anchor: Date): Date[] {
-  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const offset = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
-  const weeks = Math.ceil((offset + daysInMonth) / 7);
-  const start = new Date(first.getFullYear(), first.getMonth(), 1 - offset);
+/**
+ * 月视图固定铺 6 周。
+ *
+ * 不按「这个月实际占几周」铺 5 或 6 行 —— 那样按周滚动时网格高度会忽高忽低，
+ * 页面跟着跳，比翻页本身更难受。固定 6 行代价是某些月份多出一整周的邻月日期，
+ * 换来滚动时布局纹丝不动。
+ */
+export const MONTH_WEEKS = 6;
+
+/** 从某个周一开始连续铺 N 周 */
+export function weeksFrom(mondayStart: Date, weeks = MONTH_WEEKS): Date[] {
   return Array.from({ length: weeks * 7 }, (_, i) =>
-    new Date(start.getFullYear(), start.getMonth(), start.getDate() + i),
+    new Date(mondayStart.getFullYear(), mondayStart.getMonth(), mondayStart.getDate() + i),
+  );
+}
+
+/** 某个月默认对应的窗口起点：该月 1 号所在那周的周一 */
+export function monthWindowStart(anchor: Date): Date {
+  return mondayOfWeek(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+}
+
+/**
+ * 窗口当前「属于」哪个月 —— 取正中那一周（第 4 行的周一）所在的月。
+ * 标题和置灰都用它；按周滚动时它只在真正跨月时才变，不会一格一变。
+ */
+export function focusMonthOf(windowStart: Date, weeks = MONTH_WEEKS): Date {
+  const middle = Math.floor(weeks / 2) * 7;
+  return new Date(
+    windowStart.getFullYear(),
+    windowStart.getMonth(),
+    windowStart.getDate() + middle,
   );
 }
 

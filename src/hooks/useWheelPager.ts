@@ -1,9 +1,17 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-/** 攒够这么多滚动量才翻一页。一格标准鼠标滚轮约 100–120 */
-const THRESHOLD = 110;
-/** 翻页后的冷却：触控板一次滑动会连发几十个 wheel 事件，不锁会一口气翻十几页 */
-const COOLDOWN_MS = 300;
+interface Options {
+  /** 攒够这么多滚动量才走一步。一格标准鼠标滚轮约 100–120 */
+  threshold?: number;
+  /**
+   * 走一步之后的冷却。
+   *
+   * 步长大（比如一次翻一个月）时需要它，否则触控板一次惯性滑动会连翻十几页；
+   * 步长小（一次一周）时应设为 0 —— 连续走很多步正是「滚动」该有的手感，
+   * 加冷却反而变成一顿一顿的。
+   */
+  cooldownMs?: number;
+}
 
 /**
  * 让容器支持「滚轮上下翻页」。
@@ -14,6 +22,7 @@ const COOLDOWN_MS = 300;
 export function useWheelPager(
   ref: RefObject<HTMLElement | null>,
   onStep: (direction: 1 | -1) => void,
+  { threshold = 110, cooldownMs = 0 }: Options = {},
 ) {
   const stepRef = useRef(onStep);
   useEffect(() => {
@@ -36,22 +45,22 @@ export function useWheelPager(
       e.preventDefault();
 
       const now = performance.now();
-      if (now < lockedUntil) {
-        // 冷却期内把惯性余量丢掉，否则冷却一结束就立刻又翻一页
+      if (cooldownMs > 0 && now < lockedUntil) {
+        // 冷却期内把惯性余量丢掉，否则冷却一结束就立刻又走一步
         accumulated = 0;
         return;
       }
 
       accumulated += e.deltaY;
-      if (Math.abs(accumulated) < THRESHOLD) return;
+      if (Math.abs(accumulated) < threshold) return;
 
       stepRef.current(accumulated > 0 ? 1 : -1);
       accumulated = 0;
-      lockedUntil = now + COOLDOWN_MS;
+      lockedUntil = now + cooldownMs;
     };
 
     // 要 preventDefault 就不能是 passive
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => node.removeEventListener('wheel', onWheel);
-  }, [ref]);
+  }, [ref, threshold, cooldownMs]);
 }

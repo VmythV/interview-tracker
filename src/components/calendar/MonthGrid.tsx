@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import { useWheelPager } from '../../hooks/useWheelPager';
-import { groupByDay, monthDays, sameDay, type CalendarEvent } from '../../lib/calendar';
+import { focusMonthOf, groupByDay, sameDay, weeksFrom, type CalendarEvent } from '../../lib/calendar';
 import { localISO } from '../../lib/date';
 import { EventChip } from './EventChip';
 
@@ -9,26 +9,27 @@ const WEEKDAY = ['一', '二', '三', '四', '五', '六', '日'];
 const MAX_CHIPS = 3;
 
 interface Props {
-  anchor: Date;
+  /** 窗口起点，必须是某个周一 */
+  windowStart: Date;
   events: CalendarEvent[];
   onOpen: (appId: string) => void;
   /** 点日期数字跳到那一天的周视图 —— 月视图看不出几点，周视图能 */
   onPickDay: (day: Date) => void;
   /** 点格子空白：新增面试，默认 10:00 */
   onPickSlot: (at: string) => void;
-  /** 滚轮上下翻月 */
+  /** 滚轮上下滚动，一步一周 */
   onStep: (direction: 1 | -1) => void;
 }
 
-export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot, onStep }: Props) {
+export function MonthGrid({ windowStart, events, onOpen, onPickDay, onPickSlot, onStep }: Props) {
   // 只把日期网格交给滚轮翻月；工具栏、图例那些区域仍然正常滚页面
   const grid = useRef<HTMLDivElement | null>(null);
   useWheelPager(grid, onStep);
 
-  const days = monthDays(anchor);
+  const days = weeksFrom(windowStart);
   const byDay = groupByDay(events);
   const today = new Date();
-  const month = anchor.getMonth();
+  const focus = focusMonthOf(windowStart);
 
   return (
     <div className="cal-month">
@@ -41,7 +42,7 @@ export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot, onSte
       <div className="cal-month-grid" ref={grid}>
         {days.map((d) => {
           const list = byDay.get(localISO(d)) ?? [];
-          const outside = d.getMonth() !== month;
+          const outside = d.getMonth() !== focus.getMonth() || d.getFullYear() !== focus.getFullYear();
           const isToday = sameDay(d, today);
           return (
             <div

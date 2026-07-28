@@ -6,10 +6,13 @@ import {
   hourRange,
   layoutDay,
   minutesOfDay,
-  monthDays,
+  MONTH_WEEKS,
+  focusMonthOf,
+  monthWindowStart,
   rangeLabel,
   sameDay,
   weekDays,
+  weeksFrom,
   type CalendarEvent,
 } from './calendar';
 import { localISO } from './date';
@@ -64,7 +67,7 @@ describe('groupByDay', () => {
   });
 });
 
-describe('weekDays / monthDays', () => {
+describe('weekDays', () => {
   it('周视图永远是周一到周日 7 天', () => {
     const days = weekDays(new Date(2026, 6, 30)); // 周四
     expect(days).toHaveLength(7);
@@ -72,24 +75,65 @@ describe('weekDays / monthDays', () => {
     expect(localISO(days[6])).toBe('2026-08-02');
   });
 
-  it('月视图从该月第一周的周一开始，天数是 7 的整数倍', () => {
-    const days = monthDays(new Date(2026, 6, 15));
-    expect(days.length % 7).toBe(0);
-    expect(days[0].getDay()).toBe(1);
-    expect(days.some((d) => d.getMonth() === 6 && d.getDate() === 1)).toBe(true);
-    expect(days.some((d) => d.getMonth() === 6 && d.getDate() === 31)).toBe(true);
-  });
-
-  it('不硬撑 6 行 —— 刚好铺满 5 周就只给 5 周', () => {
-    // 2026-02 有 28 天且 1 号是周日 → 需要 5 周
-    const feb = monthDays(new Date(2026, 1, 10));
-    expect(feb.length).toBeLessThanOrEqual(42);
-    expect(feb.length % 7).toBe(0);
-  });
-
   it('sameDay 忽略时分秒', () => {
     expect(sameDay(new Date(2026, 6, 28, 1), new Date(2026, 6, 28, 23))).toBe(true);
     expect(sameDay(new Date(2026, 6, 28), new Date(2026, 6, 29))).toBe(false);
+  });
+});
+
+describe('月视图窗口（按周滚动）', () => {
+  it('窗口起点是该月 1 号所在那周的周一', () => {
+    // 2026-07-01 是周三 → 该周周一是 6/29
+    expect(localISO(monthWindowStart(new Date(2026, 6, 15)))).toBe('2026-06-29');
+  });
+
+  it('1 号正好是周一时窗口就从 1 号开始', () => {
+    // 2026-06-01 是周一
+    expect(localISO(monthWindowStart(new Date(2026, 5, 20)))).toBe('2026-06-01');
+  });
+
+  it('固定铺 6 周 —— 高度不随月份变化，滚动时布局不跳', () => {
+    const july = weeksFrom(monthWindowStart(new Date(2026, 6, 1)));
+    const feb = weeksFrom(monthWindowStart(new Date(2026, 1, 1)));
+    expect(july).toHaveLength(MONTH_WEEKS * 7);
+    expect(feb).toHaveLength(MONTH_WEEKS * 7);
+    expect(july.length).toBe(feb.length);
+  });
+
+  it('窗口天数连续且从周一开始', () => {
+    const days = weeksFrom(monthWindowStart(new Date(2026, 6, 1)));
+    expect(days[0].getDay()).toBe(1);
+    for (let i = 1; i < days.length; i++) {
+      expect(days[i].getTime() - days[i - 1].getTime()).toBe(86_400_000);
+    }
+  });
+
+  it('窗口一定覆盖整个目标月', () => {
+    const days = weeksFrom(monthWindowStart(new Date(2026, 6, 1)));
+    const iso = days.map(localISO);
+    expect(iso).toContain('2026-07-01');
+    expect(iso).toContain('2026-07-31');
+  });
+
+  it('焦点月取正中那周，默认窗口下就是目标月本身', () => {
+    for (let m = 0; m < 12; m++) {
+      const start = monthWindowStart(new Date(2026, m, 1));
+      expect(focusMonthOf(start).getMonth()).toBe(m);
+    }
+  });
+
+  it('往后滚一周窗口就平移 7 天，焦点月不会一格一变', () => {
+    const start = monthWindowStart(new Date(2026, 6, 1)); // 6/29
+    const scrolled = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+    expect(localISO(scrolled)).toBe('2026-07-06');
+    // 只挪一周仍在 7 月
+    expect(focusMonthOf(scrolled).getMonth()).toBe(6);
+  });
+
+  it('滚够远焦点月才切换', () => {
+    const start = monthWindowStart(new Date(2026, 6, 1)); // 6/29，焦点 7 月
+    const farther = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 5 * 7);
+    expect(focusMonthOf(farther).getMonth()).toBe(7); // 已经进入 8 月
   });
 });
 
