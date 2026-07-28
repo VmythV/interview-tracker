@@ -11,9 +11,11 @@ interface Props {
   onOpen: (appId: string) => void;
   /** 点日期数字跳到那一天的周视图 —— 月视图看不出几点，周视图能 */
   onPickDay: (day: Date) => void;
+  /** 点格子空白：新增面试，默认 10:00 */
+  onPickSlot: (at: string) => void;
 }
 
-export function MonthGrid({ anchor, events, onOpen, onPickDay }: Props) {
+export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot }: Props) {
   const days = monthDays(anchor);
   const byDay = groupByDay(events);
   const today = new Date();
@@ -36,6 +38,11 @@ export function MonthGrid({ anchor, events, onOpen, onPickDay }: Props) {
             <div
               key={d.getTime()}
               className={`cal-cell${outside ? ' is-outside' : ''}${isToday ? ' is-today' : ''}`}
+              onClick={(e) => {
+                const el = e.target as HTMLElement;
+                if (el.closest('.cal-chip') || el.closest('.cal-daynum') || el.closest('.cal-more')) return;
+                onPickSlot(`${localISO(d)}T10:00`);
+              }}
             >
               <button
                 type="button"

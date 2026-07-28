@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
 
 import { calendarEvents, rangeLabel, type CalendarEvent } from '../../lib/calendar';
+import { localISO } from '../../lib/date';
+import { useStore } from '../../store/StoreContext';
+import { useToast } from '../../store/ToastContext';
 import type { Application } from '../../types';
 import { MonthGrid } from './MonthGrid';
+import { QuickAddRound } from './QuickAddRound';
 import { WeekGrid } from './WeekGrid';
 
 type Mode = 'week' | 'month';
@@ -18,8 +22,18 @@ export function CalendarView({
   rows: Application[];
   onOpen: (appId: string) => void;
 }) {
+  const { dispatch } = useStore();
+  const toast = useToast();
   const [mode, setMode] = useState<Mode>('week');
   const [anchor, setAnchor] = useState(() => new Date());
+  /** 非 null 时弹出「新增一场面试」，值是预填的时间 */
+  const [quickAt, setQuickAt] = useState<string | null>(null);
+
+  // 从工具栏点「＋ 新增面试」时，默认约到下一个整点
+  const nextHourSlot = () => {
+    const d = new Date(Date.now() + 3600_000);
+    return `${localISO(d)}T${String(d.getHours()).padStart(2, '0')}:00`;
+  };
 
   const events: CalendarEvent[] = useMemo(() => calendarEvents(rows), [rows]);
   const undated = useMemo(
@@ -54,6 +68,10 @@ export function CalendarView({
 
         <span className="filters-spacer" />
 
+        <button type="button" className="btn btn-sm" onClick={() => setQuickAt(nextHourSlot())}>
+          ＋ 新增面试
+        </button>
+
         <div className="seg">
           <button
             type="button"
@@ -75,15 +93,29 @@ export function CalendarView({
       </div>
 
       {mode === 'week' ? (
-        <WeekGrid anchor={anchor} events={events} onOpen={onOpen} />
+        <WeekGrid anchor={anchor} events={events} onOpen={onOpen} onPickSlot={setQuickAt} />
       ) : (
         <MonthGrid
           anchor={anchor}
           events={events}
           onOpen={onOpen}
+          onPickSlot={setQuickAt}
           onPickDay={(d) => {
             setAnchor(d);
             setMode('week');
+          }}
+        />
+      )}
+
+      {quickAt && (
+        <QuickAddRound
+          at={quickAt}
+          applications={rows}
+          onClose={() => setQuickAt(null)}
+          onSave={(next) => {
+            dispatch({ type: 'upsert', app: next });
+            setQuickAt(null);
+            toast.push(`已给「${next.company || '未命名'}」加上一轮面试`);
           }}
         />
       )}
@@ -98,7 +130,7 @@ export function CalendarView({
         <span className="legend-item" style={{ ['--tone' as string]: 'var(--st-closed)' }}>
           <span className="legend-key" />✕ 未通过
         </span>
-        <span className="cal-legend-note">日历只画已经定了时间的轮次</span>
+        <span className="cal-legend-note">点空白格子可直接新增面试 · 日历只画已定时间的轮次</span>
       </div>
 
       {undated.length > 0 && (
