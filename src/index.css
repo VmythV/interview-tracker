@@ -601,11 +601,15 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
 }
 .cal-dayhead .wd { font-size: 11px; color: var(--text-2); }
 .cal-dayhead .dn { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal-dayhead.is-today {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
 .cal-dayhead.is-today .dn {
   background: var(--accent); color: var(--accent-ink);
-  border-radius: 999px; padding: 0 8px;
+  border-radius: 999px; padding: 0 9px; font-weight: 700;
 }
-.cal-dayhead.is-today .wd { color: var(--accent); font-weight: 600; }
+.cal-dayhead.is-today .wd { color: var(--accent); font-weight: 700; }
 
 .cal-allday { border-bottom: 1px solid var(--axis); background: var(--surface-2); }
 .cal-allday-cell {
@@ -624,7 +628,10 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
 .cal-hour-label:first-child span { transform: none; }
 
 .cal-daycol { position: relative; border-left: 1px solid var(--grid); }
-.cal-daycol.is-today { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.cal-daycol.is-today {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 1px 0 0 var(--accent), inset -1px 0 0 var(--accent);
+}
 .cal-hour-line { border-top: 1px solid var(--grid); }
 .cal-hour-line:first-child { border-top: 0; }
 
@@ -694,7 +701,12 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
 .cal-cell:first-child { border-left: 0; }
 .cal-cell.is-outside { background: var(--surface-2); }
 .cal-cell.is-outside .cal-daynum { color: var(--muted); }
-.cal-cell.is-today { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+/* 今天：42 格里要能一眼扫到，所以给整格描一圈 accent 边 + 更实的底色。
+   同时日期胶囊里直接写「今天」二字，不让颜色单独承载这个信息。 */
+.cal-cell.is-today {
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface-1));
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
 /* 每月 1 号加一道分隔线：连续滚动时这是最重要的月份分界线索 */
 .cal-cell.is-month-start { border-top-color: var(--axis); }
 .cal-daynum {
@@ -704,7 +716,12 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
   font-variant-numeric: tabular-nums;
 }
 .cal-daynum:hover { background: var(--wash); }
-.cal-cell.is-today .cal-daynum { background: var(--accent); color: var(--accent-ink); }
+.cal-today-tag { margin-left: 5px; font-size: 10px; font-weight: 600; letter-spacing: .02em; }
+.cal-cell.is-today .cal-daynum {
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 700; padding: 1px 9px;
+}
+.cal-cell.is-today .cal-daynum:hover { background: color-mix(in srgb, var(--accent) 86%, #000); }
 .cal-cell-items { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 
 .cal-chip {

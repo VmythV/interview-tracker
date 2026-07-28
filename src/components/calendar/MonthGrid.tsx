@@ -183,6 +183,7 @@ export function MonthGrid({
                       onClick={() => onPickDay(d)}
                     >
                       {firstOfMonth ? `${d.getMonth() + 1}月1日` : d.getDate()}
+                      {isToday && <span className="cal-today-tag">今天</span>}
                     </button>
 
                     <div className="cal-cell-items">

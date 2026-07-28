@@ -61,7 +61,7 @@ export function WeekGrid({ anchor, events, onOpen, onPickSlot }: Props) {
           const isToday = sameDay(d, today);
           return (
             <div key={d.getTime()} className={`cal-dayhead${isToday ? ' is-today' : ''}`}>
-              <span className="wd">周{WEEKDAY[(d.getDay() + 6) % 7]}</span>
+              <span className="wd">{isToday ? '今天' : `周${WEEKDAY[(d.getDay() + 6) % 7]}`}</span>
               <span className="dn">
                 {d.getMonth() + 1}/{d.getDate()}
               </span>
