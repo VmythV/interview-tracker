@@ -3,6 +3,7 @@ name: 部署到 GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request: # PR 上只跑检查，不部署
   workflow_dispatch: # 允许在 Actions 页面手动重新部署
 
 permissions:
@@ -28,6 +29,10 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
+      - run: npm run test
+
       # build 里带了 tsc -b，类型不过就不会发布
       - run: npm run build
 
@@ -39,6 +44,8 @@ jobs:
 
   deploy:
     needs: build
+    # PR 只验证，不发布
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
