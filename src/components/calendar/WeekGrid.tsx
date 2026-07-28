@@ -12,7 +12,8 @@ import {
   type CalendarEvent,
 } from '../../lib/calendar';
 import { localISO } from '../../lib/date';
-import { EventChip, eventTitle, eventTone } from './EventChip';
+import { EventChip } from './EventChip';
+import { eventTitle, eventTone } from './eventDisplay';
 
 const HOUR_PX = 52;
 const WEEKDAY = ['一', '二', '三', '四', '五', '六', '日'];
@@ -21,10 +22,14 @@ interface Props {
   anchor: Date;
   events: CalendarEvent[];
   onOpen: (appId: string) => void;
+  /** 点空白格子：把该格对应的时间抛上去，用来预填新增面试 */
+  onPickSlot: (at: string) => void;
 }
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
 /** 周视图 = 时间轴网格，一眼看出某天几点有面试。 */
-export function WeekGrid({ anchor, events, onOpen }: Props) {
+export function WeekGrid({ anchor, events, onOpen, onPickSlot }: Props) {
   const days = weekDays(anchor);
   const byDay = groupByDay(events);
   const dayLists = days.map((d) => byDay.get(localISO(d)) ?? []);
@@ -95,6 +100,14 @@ export function WeekGrid({ anchor, events, onOpen }: Props) {
               key={d.getTime()}
               className={`cal-daycol${isToday ? ' is-today' : ''}`}
               style={{ height: hours.length * HOUR_PX }}
+              onClick={(e) => {
+                // 点在事件块上是「打开详情」，只有点空白才是「新增」
+                if ((e.target as HTMLElement).closest('.cal-event')) return;
+                const box = e.currentTarget.getBoundingClientRect();
+                const raw = gridTop + ((e.clientY - box.top) / HOUR_PX) * 60;
+                const snapped = Math.max(0, Math.min(23 * 60 + 30, Math.floor(raw / 30) * 30));
+                onPickSlot(`${localISO(d)}T${pad2(Math.floor(snapped / 60))}:${pad2(snapped % 60)}`);
+              }}
             >
               {hours.map((h) => (
                 <div key={h} className="cal-hour-line" style={{ height: HOUR_PX }} />

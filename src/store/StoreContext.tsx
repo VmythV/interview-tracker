@@ -29,6 +29,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const ok = saveState(state);
+    // 「把 state 同步到外部系统」正是 effect 该做的事；这里唯一的额外动作是把
+    // 写入结果报回界面。返回 prev 时 React 会直接 bail out 不重渲染，所以只有
+    // 结果真正翻转（几乎不会发生）才触发一次额外渲染，不存在级联渲染。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPersistOk((prev) => (prev === ok ? prev : ok));
   }, [state]);
 
