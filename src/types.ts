@@ -60,6 +60,10 @@ export interface Persisted {
   applications: Application[];
   theme: ThemeId;
   view: ViewId;
+  /** 上次导出 JSON 的时间戳；从没导出过为 null */
+  lastExportedAt: number | null;
+  /** 上次点「以后再说」的时间戳 */
+  backupSnoozedAt: number | null;
 }
 
 export interface Filters {

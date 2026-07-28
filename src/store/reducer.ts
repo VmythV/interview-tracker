@@ -10,7 +10,9 @@ export type Action =
   | { type: 'replaceAll'; apps: Application[] }
   | { type: 'mergeIn'; apps: Application[] }
   | { type: 'setTheme'; theme: ThemeId }
-  | { type: 'setView'; view: ViewId };
+  | { type: 'setView'; view: ViewId }
+  | { type: 'markExported'; at: number }
+  | { type: 'snoozeBackup' };
 
 /** 推进状态：写 reached、写历史、维护 outcome。closed 不进 reached。 */
 export function advance(app: Application, to: StatusId): Application {
@@ -71,6 +73,12 @@ export function reducer(state: Persisted, action: Action): Persisted {
 
     case 'setView':
       return { ...state, view: action.view };
+
+    case 'markExported':
+      return { ...state, lastExportedAt: action.at, backupSnoozedAt: null };
+
+    case 'snoozeBackup':
+      return { ...state, backupSnoozedAt: Date.now() };
 
     default: {
       const never: never = action;

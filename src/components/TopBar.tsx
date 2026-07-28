@@ -1,36 +1,15 @@
 import { useRef } from 'react';
 
 import { useTheme } from '../hooks/useTheme';
-import { todayISO } from '../lib/date';
-import { parseImport } from '../lib/storage';
+import { parseImport } from '../lib/backup';
 import { useStore } from '../store/StoreContext';
 import { useToast } from '../store/ToastContext';
 
-export function TopBar({ onNew }: { onNew: () => void }) {
+export function TopBar({ onNew, onExport }: { onNew: () => void; onExport: () => void }) {
   const { state, dispatch } = useStore();
   const { isDark, toggle } = useTheme();
   const toast = useToast();
   const fileInput = useRef<HTMLInputElement | null>(null);
-
-  function exportJson() {
-    const payload = {
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      applications: state.applications,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: 'application/json;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `面试记录-${todayISO()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.push(`已导出 ${state.applications.length} 条记录`);
-  }
 
   async function importJson(file: File) {
     try {
@@ -69,7 +48,7 @@ export function TopBar({ onNew }: { onNew: () => void }) {
         >
           导入
         </button>
-        <button type="button" className="btn btn-ghost" onClick={exportJson} title="导出为 JSON 文件">
+        <button type="button" className="btn btn-ghost" onClick={onExport} title="导出为 JSON 文件">
           导出
         </button>
         <button

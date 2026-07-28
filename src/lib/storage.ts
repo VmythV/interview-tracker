@@ -112,7 +112,13 @@ export function normalize(raw: unknown): Application {
   };
 }
 
-export const emptyState = (): Persisted => ({ applications: [], theme: null, view: 'board' });
+export const emptyState = (): Persisted => ({
+  applications: [],
+  theme: null,
+  view: 'board',
+  lastExportedAt: null,
+  backupSnoozedAt: null,
+});
 
 export function loadState(): Persisted {
   try {
@@ -129,6 +135,8 @@ export function loadState(): Persisted {
       applications: list.map(normalize),
       theme: parsed.theme === 'dark' ? 'dark' : parsed.theme === 'light' ? 'light' : null,
       view: oneOf<ViewId>(parsed.view, ['board', 'calendar', 'list', 'stats'], 'board'),
+      lastExportedAt: typeof parsed.lastExportedAt === 'number' ? parsed.lastExportedAt : null,
+      backupSnoozedAt: typeof parsed.backupSnoozedAt === 'number' ? parsed.backupSnoozedAt : null,
     };
   } catch (err) {
     console.warn('[面试追踪] 本地数据读取失败，已从空白开始', err);
@@ -147,13 +155,3 @@ export function saveState(state: Persisted): boolean {
   }
 }
 
-/** 从导入的文件里取出记录数组；格式不对就抛错 */
-export function parseImport(text: string): Application[] {
-  const parsed = JSON.parse(text) as unknown;
-  const list = Array.isArray(parsed)
-    ? parsed
-    : ((parsed as Record<string, unknown>)?.applications ??
-       (parsed as Record<string, unknown>)?.records);
-  if (!Array.isArray(list)) throw new Error('文件里找不到记录数组');
-  return list.map(normalize);
-}

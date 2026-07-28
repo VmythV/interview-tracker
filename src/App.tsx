@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { BackupNotice } from './components/BackupNotice';
 import { BoardView } from './components/BoardView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { EmptyState } from './components/EmptyState';
@@ -11,6 +12,7 @@ import { StatsView } from './components/StatsView';
 import { TopBar } from './components/TopBar';
 import { ApplicationDrawer } from './components/drawer/ApplicationDrawer';
 import { useHotkeys } from './hooks/useHotkeys';
+import { exportApplications } from './lib/backup';
 import { applyFilters, cityOptions } from './lib/derive';
 import { sampleApplications } from './lib/sample';
 import { blankApplication } from './lib/storage';
@@ -127,6 +129,12 @@ export default function App() {
     onSearch: () => searchRef.current?.focus(),
   });
 
+  const handleExport = useCallback(() => {
+    const at = exportApplications(appsRef.current);
+    dispatch({ type: 'markExported', at });
+    toast.push(`已导出 ${appsRef.current.length} 条记录`);
+  }, [dispatch, toast]);
+
   const loadSample = useCallback(() => {
     dispatch({ type: 'replaceAll', apps: sampleApplications() });
     toast.push('已载入 10 条示例数据 —— 随时可以全部删掉');
@@ -136,7 +144,7 @@ export default function App() {
 
   return (
     <>
-      <TopBar onNew={openNew} />
+      <TopBar onNew={openNew} onExport={handleExport} />
 
       <main className="page">
         {!persistOk && (
@@ -146,6 +154,7 @@ export default function App() {
             刷新就会丢失。建议先用右上角的「导出」保存一份 JSON。
           </div>
         )}
+        <BackupNotice onExport={handleExport} />
         {!empty && <FocusBoard applications={applications} onOpen={openExisting} />}
         {!empty && <KpiRow rows={rows} total={applications.length} />}
 
