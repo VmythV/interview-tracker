@@ -15,6 +15,7 @@ import {
   type Round,
   type WorkModeId,
 } from '../../types';
+import { useToast } from '../../store/ToastContext';
 import { StatusPill } from '../StatusPill';
 import { Field } from './Field';
 import { RoundEditor } from './RoundEditor';
@@ -48,6 +49,7 @@ export function ApplicationDrawer({
   onDelete,
   sourceSuggestions,
 }: Props) {
+  const toast = useToast();
   const [editingRound, setEditingRound] = useState<Round | null>(null);
   const firstInput = useRef<HTMLInputElement | null>(null);
   const panel = useRef<HTMLElement | null>(null);
@@ -65,6 +67,26 @@ export function ApplicationDrawer({
 
   const patch = <K extends keyof Application>(key: K, value: Application[K]) =>
     onChange({ ...app, [key]: value });
+
+  /**
+   * 某一轮标成「未通过」时：如果已经没有别的待定轮次，多半这条就走到头了，
+   * 提示一下推到「已结束」。只提示不自动改 —— 挂一轮不等于流程结束，
+   * 可能还有别的面排着，替用户决定会误伤。
+   */
+  function setRoundResult(id: string, result: Round['result']) {
+    const rounds = app.rounds.map((r) => (r.id === id ? { ...r, result } : r));
+    onChange({ ...app, rounds });
+
+    if (result !== 'fail') return;
+    const stillPending = rounds.some((r) => r.result === 'pending');
+    const inProgress = ['assess', 'interview', 'final'].includes(app.status);
+    if (stillPending || !inProgress) return;
+
+    toast.push('这一轮未通过，且没有其它待定轮次了。', {
+      label: '标记为已结束',
+      run: () => onChange(advance({ ...app, rounds }, 'closed')),
+    });
+  }
 
   function saveRound(round: Round) {
     const i = app.rounds.findIndex((r) => r.id === round.id);
@@ -291,12 +313,7 @@ export function ApplicationDrawer({
 
             <RoundTimeline
               rounds={app.rounds}
-              onSetResult={(id, result) =>
-                patch(
-                  'rounds',
-                  app.rounds.map((r) => (r.id === id ? { ...r, result } : r)),
-                )
-              }
+              onSetResult={setRoundResult}
               onEdit={setEditingRound}
               onDelete={(id) =>
                 patch(
