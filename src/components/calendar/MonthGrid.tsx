@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+
+import { useWheelPager } from '../../hooks/useWheelPager';
 import { groupByDay, monthDays, sameDay, type CalendarEvent } from '../../lib/calendar';
 import { localISO } from '../../lib/date';
 import { EventChip } from './EventChip';
@@ -13,9 +16,15 @@ interface Props {
   onPickDay: (day: Date) => void;
   /** 点格子空白：新增面试，默认 10:00 */
   onPickSlot: (at: string) => void;
+  /** 滚轮上下翻月 */
+  onStep: (direction: 1 | -1) => void;
 }
 
-export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot }: Props) {
+export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot, onStep }: Props) {
+  // 只把日期网格交给滚轮翻月；工具栏、图例那些区域仍然正常滚页面
+  const grid = useRef<HTMLDivElement | null>(null);
+  useWheelPager(grid, onStep);
+
   const days = monthDays(anchor);
   const byDay = groupByDay(events);
   const today = new Date();
@@ -29,7 +38,7 @@ export function MonthGrid({ anchor, events, onOpen, onPickDay, onPickSlot }: Pro
         ))}
       </div>
 
-      <div className="cal-month-grid">
+      <div className="cal-month-grid" ref={grid}>
         {days.map((d) => {
           const list = byDay.get(localISO(d)) ?? [];
           const outside = d.getMonth() !== month;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { calendarEvents, rangeLabel, type CalendarEvent } from '../../lib/calendar';
 import { localISO } from '../../lib/date';
@@ -46,8 +46,10 @@ export function CalendarView({
     [rows],
   );
 
-  const step = (n: number) =>
-    setAnchor((d) => (mode === 'week' ? shiftWeek(d, n) : shiftMonth(d, n)));
+  const step = useCallback(
+    (n: number) => setAnchor((d) => (mode === 'week' ? shiftWeek(d, n) : shiftMonth(d, n))),
+    [mode],
+  );
 
   return (
     <div className="cal">
@@ -100,6 +102,7 @@ export function CalendarView({
           events={events}
           onOpen={onOpen}
           onPickSlot={setQuickAt}
+          onStep={step}
           onPickDay={(d) => {
             setAnchor(d);
             setMode('week');
@@ -130,7 +133,9 @@ export function CalendarView({
         <span className="legend-item" style={{ ['--tone' as string]: 'var(--st-closed)' }}>
           <span className="legend-key" />✕ 未通过
         </span>
-        <span className="cal-legend-note">点空白格子可直接新增面试 · 日历只画已定时间的轮次</span>
+        <span className="cal-legend-note">
+          {mode === 'month' ? '滚轮上下翻月 · ' : ''}点空白格子可直接新增面试 · 日历只画已定时间的轮次
+        </span>
       </div>
 
       {undated.length > 0 && (
