@@ -723,6 +723,17 @@ label.f > input:focus, label.f > select:focus, label.f > textarea:focus {
   .cal-chip .r { display: none; }
 }
 
+/* 窄屏：7 列硬塞进 390px 每列只剩 40 多像素，事件被截成「15:」「星…」。
+   改成日历内部横向滚动 + 每列保底宽度，横向划着看；页面本身不溢出。 */
+@media (max-width: 700px) {
+  .cal-week, .cal-month { overflow-x: auto; overscroll-behavior-x: contain; }
+  .cal-week-head, .cal-allday, .cal-week-body { min-width: 660px; }
+  .cal-month-head, .cal-month-grid { min-width: 620px; }
+  .cal-chip .r { display: inline; }
+  .cal-bar { gap: 8px; }
+  .cal-title { font-size: 12.5px; }
+}
+
 /* 本地存储写不进去时的警告 —— 纯本地应用里这是数据会丢的信号，不能低调 */
 .persist-warning {
   margin-bottom: 18px; padding: 12px 16px;
