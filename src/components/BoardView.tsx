@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { STATUS, type Application, type StatusId } from '../types';
 import { ApplicationCard } from './ApplicationCard';
@@ -12,6 +12,8 @@ interface Props {
 export function BoardView({ rows, onOpen, onMove }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<StatusId | null>(null);
+  // 引用要稳定，否则下面 ApplicationCard 的 memo 白做
+  const clearDragging = useCallback(() => setDraggingId(null), []);
 
   return (
     <div className="board">
@@ -55,7 +57,7 @@ export function BoardView({ rows, onOpen, onMove }: Props) {
                     onOpen={onOpen}
                     dragging={draggingId === app.id}
                     onDragStart={setDraggingId}
-                    onDragEnd={() => setDraggingId(null)}
+                    onDragEnd={clearDragging}
                   />
                 ))
               ) : (

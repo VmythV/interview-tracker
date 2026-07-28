@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { fmtDate, fmtWhen, dayDiff, parseDT } from '../lib/date';
 import { nextRound } from '../lib/derive';
 import { OUTCOMES, STATUS_BY_ID, type Application } from '../types';
@@ -20,7 +22,14 @@ interface Props {
   dragging: boolean;
 }
 
-export function ApplicationCard({ app, onOpen, onDragStart, onDragEnd, dragging }: Props) {
+/** memo 生效的前提是上层传下来的回调引用稳定，见 App.tsx 里的 appsRef */
+export const ApplicationCard = memo(function ApplicationCard({
+  app,
+  onOpen,
+  onDragStart,
+  onDragEnd,
+  dragging,
+}: Props) {
   const st = STATUS_BY_ID[app.status];
   const upcoming = nextRound(app);
   const settled = app.rounds.filter((r) => r.result !== 'pending').length;
@@ -97,4 +106,4 @@ export function ApplicationCard({ app, onOpen, onDragStart, onDragEnd, dragging 
       )}
     </div>
   );
-}
+});

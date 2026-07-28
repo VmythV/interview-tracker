@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BoardView } from './components/BoardView';
 import { CalendarView } from './components/calendar/CalendarView';
@@ -56,15 +56,20 @@ export default function App() {
     setDraft(blankApplication());
   }, []);
 
-  const openExisting = useCallback(
-    (id: string) => {
-      const found = applications.find((a) => a.id === id);
-      if (!found) return;
-      draftIsNew.current = false;
-      setDraft(found);
-    },
-    [applications],
-  );
+  // 用 ref 读最新数据，让 openExisting 的引用保持稳定。
+  // 否则每次数据变动它都换新引用，逐层传下去会让所有卡片的 memo 全部失效 ——
+  // 400 条记录时，抽屉里敲一个字要重渲染整块看板，实测 31ms。
+  const appsRef = useRef(applications);
+  useEffect(() => {
+    appsRef.current = applications;
+  }, [applications]);
+
+  const openExisting = useCallback((id: string) => {
+    const found = appsRef.current.find((a) => a.id === id);
+    if (!found) return;
+    draftIsNew.current = false;
+    setDraft(found);
+  }, []);
 
   const changeDraft = useCallback(
     (next: Application) => {
@@ -90,7 +95,7 @@ export default function App() {
     if (!draft) return;
     // 快照本次删除的记录和位置，多次删除各自撤销互不干扰
     const removed = draft;
-    const index = Math.max(0, applications.findIndex((a) => a.id === removed.id));
+    const index = Math.max(0, appsRef.current.findIndex((a) => a.id === removed.id));
     const existed = !draftIsNew.current;
     draftIsNew.current = false;
     setDraft(null);
@@ -100,18 +105,18 @@ export default function App() {
       label: '撤销',
       run: () => dispatch({ type: 'restore', app: removed, index }),
     });
-  }, [applications, dispatch, draft, toast]);
+  }, [dispatch, draft, toast]);
 
   /* ── 看板拖拽 ─────────────────────────────────────────── */
 
   const moveTo = useCallback(
     (id: string, to: StatusId) => {
-      const app = applications.find((a) => a.id === id);
+      const app = appsRef.current.find((a) => a.id === id);
       if (!app || app.status === to) return;
       dispatch({ type: 'advance', id, to });
       toast.push(`${app.company || '该投递'} → ${STATUS_BY_ID[to].label}`);
     },
-    [applications, dispatch, toast],
+    [dispatch, toast],
   );
 
   /* ── 快捷键（抽屉打开时让路）─────────────────────────── */

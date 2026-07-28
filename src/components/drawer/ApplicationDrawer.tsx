@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useModalDialog } from '../../hooks/useModalDialog';
 import { fmtWhen, localISO } from '../../lib/date';
 import { uid } from '../../lib/id';
 import { advance } from '../../store/reducer';
@@ -49,23 +50,18 @@ export function ApplicationDrawer({
 }: Props) {
   const [editingRound, setEditingRound] = useState<Round | null>(null);
   const firstInput = useRef<HTMLInputElement | null>(null);
+  const panel = useRef<HTMLElement | null>(null);
   const st = STATUS_BY_ID[app.status];
+
+  // Esc 先取消轮次编辑，再关抽屉
+  useModalDialog(panel, () => {
+    if (editingRound) setEditingRound(null);
+    else onClose();
+  });
 
   useEffect(() => {
     firstInput.current?.focus();
   }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        if (editingRound) setEditingRound(null);
-        else onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [editingRound, onClose]);
 
   const patch = <K extends keyof Application>(key: K, value: Application[K]) =>
     onChange({ ...app, [key]: value });
@@ -83,7 +79,7 @@ export function ApplicationDrawer({
   return (
     <>
       <div className="scrim" onClick={onClose} />
-      <aside className="drawer" aria-label="投递详情">
+      <aside className="drawer" ref={panel} role="dialog" aria-modal="true" aria-label="投递详情">
         <div className="drawer-head">
           <div>
             <h2>{app.company || '新建投递'}</h2>
