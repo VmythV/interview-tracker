@@ -158,14 +158,19 @@ export default function App() {
         {!empty && <FocusBoard applications={applications} onOpen={openExisting} />}
         {!empty && <KpiRow rows={rows} total={applications.length} />}
 
-        <FilterBar
-          ref={searchRef}
-          filters={filters}
-          onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
-          cities={cities}
-          view={view}
-          onView={(v) => dispatch({ type: 'setView', view: v })}
-        />
+        {/* 一条记录都没有时不显示筛选行：搜索/筛选无从谈起，视图切换更是
+            点了高亮会动、内容却始终是空状态，看着像按钮坏了，还会把 view
+            悄悄写进本地存储，之后建了记录会莫名落在别的视图上。 */}
+        {!empty && (
+          <FilterBar
+            ref={searchRef}
+            filters={filters}
+            onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
+            cities={cities}
+            view={view}
+            onView={(v) => dispatch({ type: 'setView', view: v })}
+          />
+        )}
 
         {!empty && (
           <p className="result-count">
