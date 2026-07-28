@@ -6,6 +6,10 @@
 
 推到 `main` 就自动构建部署（`.github/workflows/deploy.yml`）。
 
+> ⚠️ **记得导出备份**。localStorage 不是永久存储：清缓存、换设备，或者长时间不打开
+> （Safari 的 ITP 会主动清掉可被脚本写入的存储）都可能让记录消失。应用会在
+> 超过 14 天没导出时在顶部提醒，但最好养成习惯。
+>
 > ⚠️ **数据按域名隔离**。线上那份、本地 `file://` 打开的那份、以及手机上的那份，
 > 是**互不相通的三份数据**。选定一个入口就固定用它；换设备或换入口时，
 > 用右上角「导出 / 导入」搬一次 JSON。
@@ -23,8 +27,15 @@ npm install
 npm run dev        # 开发，热更新
 npm run build      # 产出 dist/index.html（单个文件，直接双击就能用）
 npm run preview    # 本地预览构建产物
+
+npm run check      # lint + 类型检查 + 测试，提交前跑这个
+npm run lint       # ESLint
 npm run typecheck  # 只做类型检查
+npm test           # 单元测试（vitest）
+npm run coverage   # 带覆盖率
 ```
+
+CI 在 push 到 `main` 和 PR 上都会跑 lint + 测试 + 构建；只有 `main` 会真的部署。
 
 `npm run build` 用 `vite-plugin-singlefile` 把 JS/CSS 全部内联进一个
 `dist/index.html`。这不是为了好看：外链的 `<script type="module">` 在 `file://`
@@ -39,22 +50,27 @@ src/
   lib/
     date.ts              日期工具，一律走本地时区
     derive.ts            全部派生计算：筛选、排序、待办、KPI、漏斗、趋势、渠道
+    calendar.ts          日历派生：事件摊平、周/月网格、重叠事件分列
     storage.ts           localStorage 读写 + 外部数据的 normalize
+    backup.ts            导出 / 导入，以及「该备份了」的判定
     sample.ts            示例数据
     id.ts
+    testFactory.ts       测试用数据工厂（只被 *.test.ts 引用）
+    *.test.ts            单元测试
   store/
     reducer.ts           所有状态变更收在这里，纯函数
+    reducer.test.ts
     StoreContext.tsx     Provider + 持久化 + 写入失败上报
     ToastContext.tsx     toast（含撤销）
   hooks/
     useTheme.ts          深浅色，默认跟随系统
     useHotkeys.ts        全局快捷键
+    useModalDialog.ts    焦点陷阱 + 锁滚动 + Esc 关闭 + 归还焦点
     useElementWidth.ts   ResizeObserver 量宽度
-    calendar.ts          日历派生：事件摊平、周/月网格、重叠事件分列
   components/
     TopBar / FocusBoard / KpiRow / FilterBar
     BoardView / ApplicationCard / ListView / StatsView / EmptyState / StatusPill
-    calendar/            CalendarView, WeekGrid, MonthGrid, EventChip
+    calendar/            CalendarView, WeekGrid, MonthGrid, EventChip, QuickAddRound
     charts/              ChartCard, StatusChart, FunnelChart, TrendChart,
                          SourceTable, TooltipContext
     drawer/              ApplicationDrawer, RoundTimeline, RoundEditor, Field
@@ -83,6 +99,8 @@ legacy/                  最早那版原生 HTML/CSS/JS，留作参考，可以�
 - 状态是「已结束」时会追问原因（未通过 / 我拒绝了 / 无回应 / 主动放弃）——
   漏斗里才分得清「被刷掉」和「自己不去」。
 - 记了面试轮次但状态还停在投递/笔试阶段，会自动推进到「面试中」。
+- 某一轮标成「未通过」且**没有其它待定轮次**时，会提示要不要推到「已结束」。
+  只提示不自动改 —— 挂一轮不等于流程结束，替你决定会误伤。
 - 每条记录另有 `reached`：**曾经**到过哪些阶段。漏斗统计用它而不是当前状态，
   所以一家被刷掉的公司仍然计入它走到过的最深一层。
 
@@ -108,6 +126,9 @@ legacy/                  最早那版原生 HTML/CSS/JS，留作参考，可以�
   同一时段撞车的面试会**并排**放，不互相盖住。
 - **月视图**每格最多显示 3 场，多了折成「还有 N 场」。点日期数字跳到那天的周视图 ——
   月视图看不出钟点，周视图能。
+- **点空白格子直接新增面试**：周视图按点击位置取整到半小时，月视图默认 10:00；
+  弹窗里选公司、填轮次名（留空则按已有轮次数顺延成「二面」「三面」）、时间和形式。
+  工具栏的「＋ 新增面试」默认约到下一个整点。
 
 事件用**结果**着色并各带图标：待定 ◐（蓝）、通过 ✓（绿）、未通过 ✕（红）。
 点任意一场直接打开对应投递的详情。悬停有完整信息（形式、地点、面试官）。
@@ -153,6 +174,7 @@ legacy/                  最早那版原生 HTML/CSS/JS，留作参考，可以�
 - **导入** —— 可选择替换或按 id 合并；任何外部数据都过一遍 `normalize`，字段缺失或类型不对会被补成合法值，不会把界面搞崩
 - **删除** —— 有 7 秒撤销，多次删除各自撤销互不干扰
 - **写入失败** —— 隐私模式或配额满时，页面顶部会出现红色告警提示先导出，不会静默丢数据
+- **备份提醒** —— 超过 14 天没导出（或从未导出）时顶部出现黄色提醒，可一键导出或推迟 7 天
 
 旧版（`records` 字段）的导出文件也能直接导入。
 
